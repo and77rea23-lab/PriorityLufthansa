@@ -14,13 +14,17 @@
       color: #ffffff;
     }
 
-    h1 {
-      color: #ff8c00; /* Arancione */
+    .logo-header {
       text-align: center;
       margin: 10px 0 20px 0;
-      font-size: 24px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+    }
+
+    .logo-header img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
     }
 
     .container {
@@ -182,7 +186,10 @@
 </head>
 <body>
 
-  <h1>PRIORITY LUFTHANSA</h1>
+  <!-- Logo al posto del testo -->
+  <div class="logo-header">
+    <img src="logo.jpg" alt="PRIORITY LUFTHANSA">
+  </div>
 
   <div class="admin-bar">
     <button class="btn-admin-toggle" onclick="toggleAdmin()">🔒 Area Riservata Admin</button>
@@ -198,10 +205,9 @@
 
   <script>
     let isAdmin = false;
-    const ADMIN_PASSWORD = "1948"; // Password aggiornata a 1948
+    const ADMIN_PASSWORD = "1948"; // Password impostata su 1948
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Mantiene l'accesso admin durante la sessione
       if (sessionStorage.getItem('priority_admin') === 'true') {
         setAdminMode(true);
       }
@@ -233,7 +239,6 @@
         document.body.classList.remove('is-admin');
       }
       
-      // Abilita o disabilita la scrittura nei testi
       document.querySelectorAll('.editable').forEach(el => {
         el.setAttribute('contenteditable', active ? 'true' : 'false');
       });
