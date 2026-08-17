@@ -28,13 +28,7 @@
     body.is-admin .sub-text-input { border-bottom: 1px dashed #aaa; background: #222; padding: 6px; border-radius: 4px; }
 
     .image-wrapper { margin-top: 8px; }
-    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; }
-    
-    /* BLOCCO TOTALE PER QUADRATINI BLU E IMMAGINI VUOTE */
-    img:not([src]), img[src=""], img[src="null"], img[src="undefined"] {
-      display: none !important;
-    }
-
+    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; }
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
@@ -50,7 +44,7 @@
     
     <div id="calendar-list"></div>
     
-    <button class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti gli Ospiti</button>
+    <button id="btn-save" class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti gli Ospiti</button>
   </div>
 
   <script>
@@ -103,7 +97,7 @@
       div.className = 'sub-box';
       
       const hasImage = data && data.imgSrc && data.imgSrc.trim() !== "";
-      const imgHtml = hasImage ? `<img src="${data.imgSrc}">` : `<img>`;
+      const imgHtml = hasImage ? `<img src="${data.imgSrc}">` : ''; 
       const displayStyle = hasImage ? 'block' : 'none';
 
       div.innerHTML = `
@@ -119,6 +113,7 @@
       subList.appendChild(div);
     }
 
+    // Compressione ad alta efficienza per non sovraccaricare Firebase
     function previewCompressed(input) {
       const file = input.files[0];
       if (!file) return;
@@ -128,13 +123,13 @@
         imgObj.onload = function() {
           const canvas = document.createElement('canvas');
           let width = imgObj.width; let height = imgObj.height;
-          const MAX_SIZE = 800;
+          const MAX_SIZE = 500; // Riduzione dimensioni per salvataggio ultra-leggero
           if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
           else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
           canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(imgObj, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4); // Compressione ottimizzata
           
           const wrapper = input.parentElement.nextElementSibling;
           let imgElem = wrapper.querySelector('img');
@@ -143,7 +138,6 @@
             wrapper.appendChild(imgElem);
           }
           imgElem.src = compressedBase64;
-          imgElem.style.display = 'block';
           wrapper.style.display = 'block';
         };
         imgObj.src = e.target.result;
@@ -152,6 +146,9 @@
     }
 
     function saveData() {
+      const btn = document.getElementById('btn-save');
+      if (btn) { btn.innerText = "⏳ Salvataggio in corso..."; btn.disabled = true; }
+
       const data = [];
       document.querySelectorAll('.date-box').forEach(box => {
         const dateTitle = box.querySelector('.date-title-input').value;
@@ -159,10 +156,9 @@
         box.querySelectorAll('.sub-box').forEach(sb => {
           const subText = sb.querySelector('.sub-text-input').value;
           const img = sb.querySelector('.img-container img');
-          const wrapper = sb.querySelector('.img-container');
           
           let imageSource = '';
-          if (wrapper && wrapper.style.display !== 'none' && img && img.getAttribute('src')) {
+          if (img && img.getAttribute('src')) {
             imageSource = img.getAttribute('src');
           }
 
@@ -175,16 +171,25 @@
       });
       
       db.ref('calendario_priority').set(data)
-        .then(() => alert('Salvato con successo per TUTTI gli ospiti!'))
-        .catch(err => alert('Errore nel salvataggio: ' + err.message));
+        .then(() => {
+          alert('Salvato con successo per TUTTI gli ospiti!');
+          if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
+        })
+        .catch(err => {
+          alert('Errore nel salvataggio: ' + err.message);
+          if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
+        });
     }
 
     db.ref('calendario_priority').on('value', (snapshot) => {
+      // Aggiorna la schermata solo se non si sta modificando
+      if (document.activeElement.tagName === 'INPUT') return;
+      
       const list = document.getElementById('calendar-list');
       list.innerHTML = '';
       const data = snapshot.val();
       if (data && data.length > 0) { data.forEach(i => addDateBox(i.dateText, i.subRowsData)); } 
-      else { addDateBox("1 Agosto"); }
+      else { addDateBox("8 Agosto"); }
       setAdminMode(isAdmin);
     });
   </script>
