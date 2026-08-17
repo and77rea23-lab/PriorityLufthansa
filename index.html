@@ -27,8 +27,7 @@
     .sub-text-input { width: 100%; background: transparent; border: none; color: #ffffff; font-size: 15px; padding: 6px 0; box-sizing: border-box; }
     body.is-admin .sub-text-input { border-bottom: 1px dashed #aaa; background: #222; padding: 6px; border-radius: 4px; }
 
-    .image-wrapper { margin-top: 8px; }
-    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; }
+    .image-container img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; margin-top: 8px; }
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
@@ -97,23 +96,20 @@
       div.className = 'sub-box';
       
       const hasImage = data && data.imgSrc && data.imgSrc.trim() !== "";
-      const imgHtml = hasImage ? `<img src="${data.imgSrc}">` : ''; 
-      const displayStyle = hasImage ? 'block' : 'none';
 
       div.innerHTML = `
         <input type="text" class="sub-text-input" value="${data.subText}" ${isAdmin ? '' : 'readonly'}>
         <div class="image-wrapper admin-only" style="margin-top:8px;">
           <input type="file" accept="image/*" onchange="previewCompressed(this)">
         </div>
-        <div class="image-wrapper img-container" style="display:${displayStyle};">
-          ${imgHtml}
+        <div class="image-container">
+          ${hasImage ? `<img src="${data.imgSrc}">` : ''}
         </div>
         <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>
       `;
       subList.appendChild(div);
     }
 
-    // Compressione ad alta efficienza per non sovraccaricare Firebase
     function previewCompressed(input) {
       const file = input.files[0];
       if (!file) return;
@@ -123,22 +119,21 @@
         imgObj.onload = function() {
           const canvas = document.createElement('canvas');
           let width = imgObj.width; let height = imgObj.height;
-          const MAX_SIZE = 500; // Riduzione dimensioni per salvataggio ultra-leggero
+          const MAX_SIZE = 500;
           if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
           else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
           canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(imgObj, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4); // Compressione ottimizzata
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
           
-          const wrapper = input.parentElement.nextElementSibling;
-          let imgElem = wrapper.querySelector('img');
+          const container = input.parentElement.nextElementSibling;
+          let imgElem = container.querySelector('img');
           if (!imgElem) {
             imgElem = document.createElement('img');
-            wrapper.appendChild(imgElem);
+            container.appendChild(imgElem);
           }
           imgElem.src = compressedBase64;
-          wrapper.style.display = 'block';
         };
         imgObj.src = e.target.result;
       };
@@ -155,16 +150,11 @@
         const subRows = [];
         box.querySelectorAll('.sub-box').forEach(sb => {
           const subText = sb.querySelector('.sub-text-input').value;
-          const img = sb.querySelector('.img-container img');
+          const img = sb.querySelector('.image-container img');
           
-          let imageSource = '';
-          if (img && img.getAttribute('src')) {
-            imageSource = img.getAttribute('src');
-          }
-
           subRows.push({
             subText: subText,
-            imgSrc: imageSource
+            imgSrc: (img) ? img.src : ''
           });
         });
         data.push({ dateText: dateTitle, subRowsData: subRows });
@@ -172,19 +162,17 @@
       
       db.ref('calendario_priority').set(data)
         .then(() => {
-          alert('Salvato con successo per TUTTI gli ospiti!');
+          alert('Salvato con successo!');
           if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
         })
         .catch(err => {
-          alert('Errore nel salvataggio: ' + err.message);
+          alert('Errore: ' + err.message);
           if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
         });
     }
 
     db.ref('calendario_priority').on('value', (snapshot) => {
-      // Aggiorna la schermata solo se non si sta modificando
       if (document.activeElement.tagName === 'INPUT') return;
-      
       const list = document.getElementById('calendar-list');
       list.innerHTML = '';
       const data = snapshot.val();
