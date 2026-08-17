@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Priority Lufthansa</title>
+  <title>PRIORITY LUFTHANSA</title>
   <style>
-    /* Tema PriorityLufthansa: Nero e Arancione */
+    /* Tema PriorityLufthansa: Grigio Scuro e Arancione */
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #000000; /* Nero */
+      background-color: #1e1e1e; /* Sfondo Grigio Scuro */
       margin: 0;
       padding: 12px;
       color: #ffffff;
@@ -32,8 +32,8 @@
     }
 
     .btn-main {
-      background-color: #ff8c00; /* Arancione */
-      color: #000; /* Nero */
+      background-color: #ff8c00;
+      color: #000;
       border: none;
       padding: 14px;
       border-radius: 10px;
@@ -73,8 +73,8 @@
     }
 
     details.date-box {
-      background: #1a1a1a;
-      border: 1px solid #333;
+      background: #2a2a2a;
+      border: 1px solid #444;
       border-radius: 10px;
       overflow: hidden;
     }
@@ -103,13 +103,13 @@
 
     .sub-content {
       padding: 10px;
-      background-color: #121212;
-      border-top: 1px solid #333;
+      background-color: #252525;
+      border-top: 1px solid #444;
     }
 
     details.sub-box {
-      background: #252525;
-      border: 1px solid #444;
+      background: #333333;
+      border: 1px solid #555;
       border-radius: 8px;
       margin-bottom: 8px;
     }
@@ -123,15 +123,19 @@
 
     .editable {
       outline: none;
-      border-bottom: 1px dashed #ff8c00;
       padding: 2px 4px;
       display: inline-block;
       width: 80%;
       color: #fff;
     }
 
+    /* Bordo tratteggiato visibile solo in modalità Admin */
+    body.is-admin .editable {
+      border-bottom: 1px dashed #ff8c00;
+    }
+
     .editable:focus {
-      background-color: #333;
+      background-color: #444;
       border-bottom: 2px solid #ff8c00;
     }
 
@@ -145,7 +149,7 @@
       height: auto;
       border-radius: 6px;
       margin-top: 10px;
-      border: 1px solid #444;
+      border: 1px solid #555;
     }
 
     .file-input {
@@ -154,22 +158,86 @@
       width: 100%;
       color: #888;
     }
+
+    /* NASCONDE TUTTI I PULSANTI E LE MODIFICHE AI VISITATORI OSPITI */
+    body:not(.is-admin) .admin-only {
+      display: none !important;
+    }
+
+    .admin-bar {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .btn-admin-toggle {
+      background: transparent;
+      border: 1px solid #444;
+      color: #666;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
-  <h1>PriorityLufthansa</h1>
+  <h1>PRIORITY LUFTHANSA</h1>
+
+  <div class="admin-bar">
+    <button class="btn-admin-toggle" onclick="toggleAdmin()">🔒 Area Riservata Admin</button>
+  </div>
 
   <div class="container">
-    <button class="btn-main" onclick="addDateBox()">+ Aggiungi Nuova Data</button>
+    <button class="btn-main admin-only" onclick="addDateBox()">+ Aggiungi Nuova Data</button>
 
     <div id="calendar-list"></div>
 
-    <button class="btn-main btn-save" onclick="saveData()">💾 Salva Modifiche</button>
+    <button class="btn-main btn-save admin-only" onclick="saveData()">💾 Salva Modifiche</button>
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', loadData);
+    let isAdmin = false;
+    const ADMIN_PASSWORD = "1948"; // Password aggiornata a 1948
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Mantiene l'accesso admin durante la sessione
+      if (sessionStorage.getItem('priority_admin') === 'true') {
+        setAdminMode(true);
+      }
+      loadData();
+    });
+
+    function toggleAdmin() {
+      if (isAdmin) {
+        setAdminMode(false);
+        sessionStorage.removeItem('priority_admin');
+        alert("Modalità Ospite attivata (sola lettura).");
+      } else {
+        const pass = prompt("Inserisci la password di Amministratore:");
+        if (pass === ADMIN_PASSWORD) {
+          setAdminMode(true);
+          sessionStorage.setItem('priority_admin', 'true');
+          alert("Accesso eseguito! Ora puoi modificare i contenuti.");
+        } else if (pass !== null) {
+          alert("Password errata!");
+        }
+      }
+    }
+
+    function setAdminMode(active) {
+      isAdmin = active;
+      if (active) {
+        document.body.classList.add('is-admin');
+      } else {
+        document.body.classList.remove('is-admin');
+      }
+      
+      // Abilita o disabilita la scrittura nei testi
+      document.querySelectorAll('.editable').forEach(el => {
+        el.setAttribute('contenteditable', active ? 'true' : 'false');
+      });
+    }
 
     function addDateBox(dateText = "1 Agosto", subRowsData = null) {
       const list = document.getElementById('calendar-list');
@@ -188,23 +256,23 @@
         const hasImg = sub.imgSrc !== "";
         subRowsHtml += `
           <details class="sub-box">
-            <summary><span class="editable" contenteditable="true">${sub.subText}</span></summary>
+            <summary><span class="editable" contenteditable="${isAdmin}">${sub.subText}</span></summary>
             <div class="image-wrapper">
-              <label style="font-size:12px; color:#aaa; display:block;">Seleziona Immagine:</label>
-              <input type="file" accept="image/*" class="file-input" onchange="compressAndPreview(this)">
+              <label class="admin-only" style="font-size:12px; color:#aaa; display:block;">Seleziona Immagine:</label>
+              <input type="file" accept="image/*" class="file-input admin-only" onchange="compressAndPreview(this)">
               <img src="${sub.imgSrc}" style="display: ${hasImg ? 'block' : 'none'}; margin: 10px auto;">
-              <button class="btn-delete" onclick="this.closest('.sub-box').remove()">Elimina sottoriga</button>
+              <button class="btn-delete admin-only" onclick="this.closest('.sub-box').remove()">Elimina sottoriga</button>
             </div>
           </details>
         `;
       });
 
       item.innerHTML = `
-        <summary><span class="editable" contenteditable="true">${dateText}</span></summary>
+        <summary><span class="editable" contenteditable="${isAdmin}">${dateText}</span></summary>
         <div class="sub-content">
           <div class="sub-list">${subRowsHtml}</div>
-          <button class="btn-add-sub" onclick="addNewSubRow(this)">+ Aggiungi sottoriga</button>
-          <button class="btn-delete" style="width:100%; margin-top:12px;" onclick="this.closest('.date-box').remove()">Elimina intera Data</button>
+          <button class="btn-add-sub admin-only" onclick="addNewSubRow(this)">+ Aggiungi sottoriga</button>
+          <button class="btn-delete admin-only" style="width:100%; margin-top:12px;" onclick="this.closest('.date-box').remove()">Elimina intera Data</button>
         </div>
       `;
 
@@ -217,12 +285,12 @@
       const newSub = document.createElement('details');
       newSub.className = 'sub-box';
       newSub.innerHTML = `
-        <summary><span class="editable" contenteditable="true">Sottoriga ${count}...</span></summary>
+        <summary><span class="editable" contenteditable="${isAdmin}">Sottoriga ${count}...</span></summary>
         <div class="image-wrapper">
-          <label style="font-size:12px; color:#aaa; display:block;">Seleziona Immagine:</label>
-          <input type="file" accept="image/*" class="file-input" onchange="compressAndPreview(this)">
+          <label class="admin-only" style="font-size:12px; color:#aaa; display:block;">Seleziona Immagine:</label>
+          <input type="file" accept="image/*" class="file-input admin-only" onchange="compressAndPreview(this)">
           <img src="" style="display: none; margin: 10px auto;">
-          <button class="btn-delete" onclick="this.closest('.sub-box').remove()">Elimina sottoriga</button>
+          <button class="btn-delete admin-only" onclick="this.closest('.sub-box').remove()">Elimina sottoriga</button>
         </div>
       `;
       subList.appendChild(newSub);
@@ -282,7 +350,7 @@
 
       try {
         localStorage.setItem('priorityLufthansaData', JSON.stringify(data));
-        alert('PriorityLufthansa salvato con successo!');
+        alert('PRIORITY LUFTHANSA salvato con successo!');
       } catch(e) {
         alert('Memoria piena, rimuovi qualche foto.');
       }
