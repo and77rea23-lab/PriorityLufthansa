@@ -36,6 +36,9 @@
     .img-render-area { display: none; margin-top: 8px; }
     .img-render-area.open { display: block; }
     .image-container img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; }
+    
+    .caption-display { background: #222; color: #ff8c00; font-size: 13px; padding: 6px 10px; border-radius: 4px; margin-top: 6px; text-align: center; border: 1px solid #444; font-weight: 500; }
+    
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
@@ -100,6 +103,20 @@
       }
     }
 
+    function updateCaptionDisplay(input) {
+      const container = input.parentElement.querySelector('.image-container');
+      if (container) {
+        let capDiv = container.querySelector('.caption-display');
+        if (!capDiv) {
+          capDiv = document.createElement('div');
+          capDiv.className = 'caption-display';
+          container.appendChild(capDiv);
+        }
+        capDiv.innerText = input.value;
+        capDiv.style.display = input.value.trim() ? 'block' : 'none';
+      }
+    }
+
     function addDateBox(dateText = "Nuova Data", subRowsData = null) {
       const list = document.getElementById('calendar-list');
       const item = document.createElement('div');
@@ -119,16 +136,17 @@
       if (subRowsData && subRowsData.length > 0) { 
         subRowsData.forEach(s => addNewSubRow(subList, s)); 
       } else { 
-        addNewSubRow(subList, {subText: "Nuova riga...", imgSrc: ""}); 
+        addNewSubRow(subList, {subText: "Nuova riga...", imgSrc: "", imgCaption: ""}); 
       }
     }
 
-    function addNewSubRow(container, data = {subText: "Nuova riga...", imgSrc: ""}) {
+    function addNewSubRow(container, data = {subText: "Nuova riga...", imgSrc: "", imgCaption: ""}) {
       const subList = container.classList.contains('sub-list') ? container : container.parentElement;
       const div = document.createElement('div');
       div.className = 'sub-box';
       
       const hasValidImage = data && data.imgSrc && typeof data.imgSrc === 'string' && data.imgSrc.startsWith('data:image');
+      const caption = (data && data.imgCaption) ? data.imgCaption : '';
 
       div.innerHTML = `
         <input type="text" class="sub-text-input" value="${data.subText}" ${isAdmin ? '' : 'readonly'}>
@@ -142,7 +160,13 @@
         </button>
         
         <div class="img-render-area">
-          ${hasValidImage ? `<div class="image-container"><img src="${data.imgSrc}"></div>` : ''}
+          ${hasValidImage ? `
+            <div class="image-container">
+              <img src="${data.imgSrc}">
+              <div class="caption-display" style="${caption ? '' : 'display:none;'}">${caption}</div>
+            </div>
+          ` : ''}
+          <input type="text" class="img-caption-input admin-only" placeholder="Didascalia foto..." value="${caption}" style="margin-top:6px; width:100%; box-sizing:border-box; background:#222; border:1px solid #666; color:#fff; padding:6px; border-radius:4px;" oninput="updateCaptionDisplay(this)">
         </div>
         
         <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>
@@ -176,9 +200,17 @@
           const subBox = input.closest('.sub-box');
           const dropdownBtn = subBox.querySelector('.btn-img-dropdown');
           const area = subBox.querySelector('.img-render-area');
-          
+          const captionInput = area.querySelector('.img-caption-input');
+          const captionVal = captionInput ? captionInput.value : '';
+
           dropdownBtn.style.display = 'flex';
-          area.innerHTML = `<div class="image-container"><img src="${compressedBase64}"></div>`;
+          area.innerHTML = `
+            <div class="image-container">
+              <img src="${compressedBase64}">
+              <div class="caption-display" style="${captionVal ? '' : 'display:none;'}">${captionVal}</div>
+            </div>
+            <input type="text" class="img-caption-input admin-only" placeholder="Didascalia foto..." value="${captionVal}" style="margin-top:6px; width:100%; box-sizing:border-box; background:#222; border:1px solid #666; color:#fff; padding:6px; border-radius:4px;" oninput="updateCaptionDisplay(this)">
+          `;
           area.classList.add('open');
           dropdownBtn.querySelector('.arrow-sub').innerText = '▲';
         };
@@ -198,15 +230,22 @@
         box.querySelectorAll('.sub-box').forEach(sb => {
           const subText = sb.querySelector('.sub-text-input').value;
           const img = sb.querySelector('.img-render-area img');
+          const captionInput = sb.querySelector('.img-caption-input');
           
           let imageSource = '';
           if (img && img.src && img.src.startsWith('data:image')) {
             imageSource = img.src;
           }
 
+          let imgCaption = '';
+          if (captionInput && imageSource) {
+            imgCaption = captionInput.value;
+          }
+
           subRows.push({
             subText: subText,
-            imgSrc: imageSource
+            imgSrc: imageSource,
+            imgCaption: imgCaption
           });
         });
         data.push({ dateText: dateTitle, subRowsData: subRows });
