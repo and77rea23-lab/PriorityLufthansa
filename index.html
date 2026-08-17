@@ -6,6 +6,11 @@
   <title>PRIORITY LUFTHANSA</title>
   <link rel="apple-touch-icon" href="icona.jpg">
   <link rel="icon" type="image/jpeg" href="icona.jpg">
+  
+  <!-- Firebase per la memoria condivisa -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
   <style>
     body { font-family: -apple-system, sans-serif; background-color: #1e1e1e; margin: 0; padding: 12px; color: #ffffff; }
     .logo-header { text-align: center; margin: 10px 0 20px 0; }
@@ -19,7 +24,7 @@
     .editable { outline: none; padding: 2px 4px; display: inline-block; width: 80%; color: #fff; }
     body.is-admin .editable { border-bottom: 1px dashed #ff8c00; }
     .sub-box { background: #333333; border: 1px solid #555; border-radius: 8px; margin-bottom: 8px; padding: 12px; }
-    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #555; display: none; }
+    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #555; }
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 5px; }
   </style>
 </head>
@@ -32,18 +37,34 @@
   <div class="container">
     <button class="btn-admin-toggle" style="background:transparent; border:1px solid #444; color:#666; padding:4px; font-size:11px; margin: 0 auto;" onclick="toggleAdmin()">🔒 Admin</button>
     <button class="btn-main admin-only" onclick="addDateBox()">+ Aggiungi Nuova Data</button>
+    
     <div id="calendar-list"></div>
-    <button class="btn-main admin-only" onclick="saveData()">💾 Salva Modifiche</button>
+    
+    <button class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti gli Ospiti</button>
   </div>
 
   <script>
+    // CONFIGURAZIONE DATABASE FIREBASE (Inserisci i tuoi codici Firebase qui dentro)
+    const firebaseConfig = {
+      apiKey: "INSERISCI_TUA_API_KEY",
+      authDomain: "TUO_PROGETTO.firebaseapp.com",
+      databaseURL: "https://TUO_PROGETTO-default-rtdb.firebaseio.com",
+      projectId: "TUO_PROGETTO",
+      storageBucket: "TUO_PROGETTO.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     let isAdmin = false;
     const ADMIN_PASSWORD = "1948";
 
     function toggleAdmin() {
       if (isAdmin) { setAdminMode(false); } 
       else { 
-        const pass = prompt("Password:"); 
+        const pass = prompt("Password Amministratore:"); 
         if (pass === ADMIN_PASSWORD) setAdminMode(true); 
       }
     }
@@ -58,52 +79,77 @@
       const list = document.getElementById('calendar-list');
       const item = document.createElement('details');
       item.className = 'date-box';
-      item.innerHTML = `<summary><span class="editable" contenteditable="${isAdmin}">${dateText}</span></summary>
+      item.innerHTML = `
+        <summary><span class="editable" contenteditable="${isAdmin}">${dateText}</span></summary>
         <div class="sub-content" style="padding:10px;">
           <div class="sub-list"></div>
-          <button class="admin-only" onclick="addNewSubRow(this)">+ Riga</button>
-          <button class="btn-delete admin-only" onclick="this.closest('.date-box').remove()">Elimina Data</button>
+          <button class="admin-only btn-main" style="padding:8px; font-size:12px; margin-top:5px;" onclick="addNewSubRow(this)">+ Aggiungi Riga</button>
+          <button class="btn-delete admin-only" style="width:100%; margin-top:10px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>
         </div>`;
       list.appendChild(item);
       if (subRowsData) subRowsData.forEach(s => addNewSubRow(item.querySelector('.sub-list'), s));
     }
 
     function addNewSubRow(container, data = {subText: "Nuova riga...", imgSrc: ""}) {
-      const subList = container.className === 'sub-list' ? container : container.previousElementSibling.querySelector('.sub-list');
+      const subList = container.className === 'sub-list' ? container : container.previousElementSibling;
       const div = document.createElement('div');
       div.className = 'sub-box';
-      div.innerHTML = `<span class="editable" contenteditable="${isAdmin}">${data.subText}</span>
-        <div class="image-wrapper admin-only"><input type="file" onchange="preview(this)"><img src="${data.imgSrc}" style="display:${data.imgSrc?'block':'none'}"></div>
-        <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina</button>`;
+      div.innerHTML = `
+        <span class="editable" contenteditable="${isAdmin}">${data.subText}</span>
+        <div class="image-wrapper admin-only">
+          <input type="file" accept="image/*" onchange="preview(this)">
+        </div>
+        <div class="image-wrapper">
+          <img src="${data.imgSrc}" style="display:${data.imgSrc ? 'block' : 'none'};">
+        </div>
+        <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>`;
       subList.appendChild(div);
     }
 
     function preview(input) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = input.nextElementSibling;
+        const img = input.parentElement.nextElementSibling.querySelector('img');
         img.src = e.target.result;
         img.style.display = 'block';
       };
       reader.readAsDataURL(input.files[0]);
     }
 
+    // SALVA SUL DATABASE GLOBALE
     function saveData() {
       const data = [];
       document.querySelectorAll('.date-box').forEach(box => {
         const subRows = [];
         box.querySelectorAll('.sub-box').forEach(sb => {
-          subRows.push({ subText: sb.querySelector('.editable').innerText, imgSrc: sb.querySelector('img').src });
+          const img = sb.querySelector('img');
+          subRows.push({ 
+            subText: sb.querySelector('.editable').innerText, 
+            imgSrc: img ? img.src : '' 
+          });
         });
-        data.push({ dateText: box.querySelector('summary .editable').innerText, subRowsData: subRows });
+        data.push({ 
+          dateText: box.querySelector('summary .editable').innerText, 
+          subRowsData: subRows 
+        });
       });
-      localStorage.setItem('priorityData', JSON.stringify(data));
-      alert('Salvato!');
+
+      db.ref('calendario_priority').set(data)
+        .then(() => alert('Modifiche pubblicate per TUTTI gli ospiti!'))
+        .catch(err => alert('Errore nel salvataggio: ' + err.message));
     }
 
-    const saved = localStorage.getItem('priorityData');
-    if (saved) JSON.parse(saved).forEach(i => addDateBox(i.dateText, i.subRowsData));
-    else addDateBox("1 Agosto");
+    // CARICA I DATI IN TEMPO REALE PER CHIUNQUE APRA IL SITO
+    db.ref('calendario_priority').on('value', (snapshot) => {
+      const list = document.getElementById('calendar-list');
+      list.innerHTML = '';
+      const data = snapshot.val();
+      if (data) {
+        data.forEach(i => addDateBox(i.dateText, i.subRowsData));
+      } else {
+        addDateBox("1 Agosto");
+      }
+    });
   </script>
 </body>
 </html>
