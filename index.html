@@ -4,11 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PRIORITY LUFTHANSA</title>
+  
+  <!-- Icona personalizzata per la schermata Home -->
+  <link rel="apple-touch-icon" href="icona.jpg">
+  <link rel="icon" type="image/jpeg" href="icona.jpg">
+
   <style>
     /* Tema PriorityLufthansa: Grigio Scuro e Arancione */
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #1e1e1e; /* Sfondo Grigio Scuro */
+      background-color: #1e1e1e;
       margin: 0;
       padding: 12px;
       color: #ffffff;
@@ -133,7 +138,6 @@
       color: #fff;
     }
 
-    /* Bordo tratteggiato visibile solo in modalità Admin */
     body.is-admin .editable {
       border-bottom: 1px dashed #ff8c00;
     }
@@ -163,7 +167,6 @@
       color: #888;
     }
 
-    /* NASCONDE TUTTI I PULSANTI E LE MODIFICHE AI VISITATORI OSPITI */
     body:not(.is-admin) .admin-only {
       display: none !important;
     }
@@ -186,7 +189,7 @@
 </head>
 <body>
 
-  <!-- Logo al posto del testo -->
+  <!-- Logo in testa al sito -->
   <div class="logo-header">
     <img src="logo.jpg" alt="PRIORITY LUFTHANSA">
   </div>
@@ -205,7 +208,7 @@
 
   <script>
     let isAdmin = false;
-    const ADMIN_PASSWORD = "1948"; // Password impostata su 1948
+    const ADMIN_PASSWORD = "1948";
 
     document.addEventListener('DOMContentLoaded', () => {
       if (sessionStorage.getItem('priority_admin') === 'true') {
@@ -218,13 +221,13 @@
       if (isAdmin) {
         setAdminMode(false);
         sessionStorage.removeItem('priority_admin');
-        alert("Modalità Ospite attivata (sola lettura).");
+        alert("Modalità Ospite attivata.");
       } else {
         const pass = prompt("Inserisci la password di Amministratore:");
         if (pass === ADMIN_PASSWORD) {
           setAdminMode(true);
           sessionStorage.setItem('priority_admin', 'true');
-          alert("Accesso eseguito! Ora puoi modificare i contenuti.");
+          alert("Accesso eseguito!");
         } else if (pass !== null) {
           alert("Password errata!");
         }
@@ -238,7 +241,6 @@
       } else {
         document.body.classList.remove('is-admin');
       }
-      
       document.querySelectorAll('.editable').forEach(el => {
         el.setAttribute('contenteditable', active ? 'true' : 'false');
       });
@@ -304,31 +306,26 @@
     function compressAndPreview(input) {
       const file = input.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function(e) {
         const imgObj = new Image();
         imgObj.src = e.target.result;
-
         imgObj.onload = function() {
           const canvas = document.createElement('canvas');
           const MAX_WIDTH = 600;
           const MAX_HEIGHT = 600;
           let width = imgObj.width;
           let height = imgObj.height;
-
           if (width > height) {
             if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
           } else {
             if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
           }
-
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(imgObj, 0, 0, width, height);
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
-
           const imgTag = input.nextElementSibling;
           imgTag.src = compressedDataUrl;
           imgTag.style.display = 'block';
@@ -352,12 +349,11 @@
         });
         data.push({ dateText, subRowsData });
       });
-
       try {
         localStorage.setItem('priorityLufthansaData', JSON.stringify(data));
-        alert('PRIORITY LUFTHANSA salvato con successo!');
+        alert('Modifiche salvate!');
       } catch(e) {
-        alert('Memoria piena, rimuovi qualche foto.');
+        alert('Errore: memoria piena.');
       }
     }
 
