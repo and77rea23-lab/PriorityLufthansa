@@ -29,6 +29,12 @@
 
     .image-wrapper { margin-top: 8px; }
     .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; }
+    
+    /* BLOCCO TOTALE PER QUADRATINI BLU E IMMAGINI VUOTE */
+    img:not([src]), img[src=""], img[src="null"], img[src="undefined"] {
+      display: none !important;
+    }
+
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
@@ -95,15 +101,18 @@
       const subList = container.classList.contains('sub-list') ? container : container.previousElementSibling;
       const div = document.createElement('div');
       div.className = 'sub-box';
-      // Se non c'è immagine, nascondiamo tutto il blocco wrapper
-      const displayStyle = data.imgSrc ? 'block' : 'none';
+      
+      const hasImage = data && data.imgSrc && data.imgSrc.trim() !== "";
+      const imgHtml = hasImage ? `<img src="${data.imgSrc}">` : `<img>`;
+      const displayStyle = hasImage ? 'block' : 'none';
+
       div.innerHTML = `
         <input type="text" class="sub-text-input" value="${data.subText}" ${isAdmin ? '' : 'readonly'}>
         <div class="image-wrapper admin-only" style="margin-top:8px;">
           <input type="file" accept="image/*" onchange="previewCompressed(this)">
         </div>
-        <div class="image-wrapper" style="display:${displayStyle};">
-          <img src="${data.imgSrc || ''}">
+        <div class="image-wrapper img-container" style="display:${displayStyle};">
+          ${imgHtml}
         </div>
         <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>
       `;
@@ -126,10 +135,16 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(imgObj, 0, 0, width, height);
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          
           const wrapper = input.parentElement.nextElementSibling;
-          const imgElem = wrapper.querySelector('img');
+          let imgElem = wrapper.querySelector('img');
+          if (!imgElem) {
+            imgElem = document.createElement('img');
+            wrapper.appendChild(imgElem);
+          }
           imgElem.src = compressedBase64;
-          wrapper.style.display = 'block'; // Mostra solo ora che c'è la foto
+          imgElem.style.display = 'block';
+          wrapper.style.display = 'block';
         };
         imgObj.src = e.target.result;
       };
@@ -143,18 +158,25 @@
         const subRows = [];
         box.querySelectorAll('.sub-box').forEach(sb => {
           const subText = sb.querySelector('.sub-text-input').value;
-          const img = sb.querySelector('img');
-          const wrapper = sb.querySelector('.image-wrapper:not(.admin-only)');
+          const img = sb.querySelector('.img-container img');
+          const wrapper = sb.querySelector('.img-container');
+          
+          let imageSource = '';
+          if (wrapper && wrapper.style.display !== 'none' && img && img.getAttribute('src')) {
+            imageSource = img.getAttribute('src');
+          }
+
           subRows.push({
             subText: subText,
-            imgSrc: (wrapper && wrapper.style.display !== 'none') ? img.src : ''
+            imgSrc: imageSource
           });
         });
         data.push({ dateText: dateTitle, subRowsData: subRows });
       });
+      
       db.ref('calendario_priority').set(data)
-        .then(() => alert('Salvato!'))
-        .catch(err => alert('Errore: ' + err.message));
+        .then(() => alert('Salvato con successo per TUTTI gli ospiti!'))
+        .catch(err => alert('Errore nel salvataggio: ' + err.message));
     }
 
     db.ref('calendario_priority').on('value', (snapshot) => {
