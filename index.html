@@ -44,15 +44,15 @@
   </div>
 
   <script>
-    // CONFIGURAZIONE DATABASE FIREBASE (Inserisci i tuoi codici Firebase qui dentro)
+    // Configurazione recuperata direttamente dal tuo schermo
     const firebaseConfig = {
-      apiKey: "INSERISCI_TUA_API_KEY",
-      authDomain: "TUO_PROGETTO.firebaseapp.com",
-      databaseURL: "https://TUO_PROGETTO-default-rtdb.firebaseio.com",
-      projectId: "TUO_PROGETTO",
-      storageBucket: "TUO_PROGETTO.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef"
+      apiKey: "AIzaSyB9tx_miG8-FaCSkX3uWI1UlEryNRV",
+      authDomain: "priority-lufthansa.firebaseapp.com",
+      databaseURL: "https://priority-lufthansa-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "priority-lufthansa",
+      storageBucket: "priority-lufthansa.appspot.com",
+      messagingSenderId: "562249937483",
+      appId: "1:562249937483:web:29d94c54f809ad160"
     };
     
     firebase.initializeApp(firebaseConfig);
@@ -116,7 +116,6 @@
       reader.readAsDataURL(input.files[0]);
     }
 
-    // SALVA SUL DATABASE GLOBALE
     function saveData() {
       const data = [];
       document.querySelectorAll('.date-box').forEach(box => {
@@ -135,11 +134,10 @@
       });
 
       db.ref('calendario_priority').set(data)
-        .then(() => alert('Modifiche pubblicate per TUTTI gli ospiti!'))
+        .then(() => alert('Salvato con successo per TUTTI gli ospiti!'))
         .catch(err => alert('Errore nel salvataggio: ' + err.message));
     }
 
-    // CARICA I DATI IN TEMPO REALE PER CHIUNQUE APRA IL SITO
     db.ref('calendario_priority').on('value', (snapshot) => {
       const list = document.getElementById('calendar-list');
       list.innerHTML = '';
