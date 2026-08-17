@@ -7,25 +7,29 @@
   <link rel="apple-touch-icon" href="icona.jpg">
   <link rel="icon" type="image/jpeg" href="icona.jpg">
   
-  <!-- Firebase per la memoria condivisa -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
   <style>
-    body { font-family: -apple-system, sans-serif; background-color: #1e1e1e; margin: 0; padding: 12px; color: #ffffff; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #1e1e1e; margin: 0; padding: 12px; color: #ffffff; }
     .logo-header { text-align: center; margin: 10px 0 20px 0; }
     .logo-header img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
     .container { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-    .btn-main { background-color: #ff8c00; color: #000; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; }
-    .admin-only { display: none; }
+    .btn-main { background-color: #ff8c00; color: #000; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; }
+    .admin-only { display: none !important; }
     body.is-admin .admin-only { display: block !important; }
-    details.date-box { background: #2a2a2a; border: 1px solid #444; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
-    summary { padding: 16px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #ff8c00; }
-    .editable { outline: none; padding: 2px 4px; display: inline-block; width: 80%; color: #fff; }
-    body.is-admin .editable { border-bottom: 1px dashed #ff8c00; }
-    .sub-box { background: #333333; border: 1px solid #555; border-radius: 8px; margin-bottom: 8px; padding: 12px; }
-    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; margin-top: 10px; border: 1px solid #555; }
-    .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 5px; }
+    
+    .date-box { background: #2a2a2a; border: 1px solid #444; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+    .date-title-input { width: 100%; background: transparent; border: none; color: #ff8c00; font-size: 18px; font-weight: bold; padding: 6px 0; box-sizing: border-box; }
+    body.is-admin .date-title-input { border-bottom: 1px dashed #ff8c00; background: #333; padding: 6px; border-radius: 4px; }
+
+    .sub-box { background: #333333; border: 1px solid #555; border-radius: 8px; margin-top: 10px; padding: 10px; }
+    .sub-text-input { width: 100%; background: transparent; border: none; color: #ffffff; font-size: 15px; padding: 6px 0; box-sizing: border-box; }
+    body.is-admin .sub-text-input { border-bottom: 1px dashed #aaa; background: #222; padding: 6px; border-radius: 4px; }
+
+    .image-wrapper { margin-top: 8px; }
+    .image-wrapper img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; }
+    .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -35,7 +39,7 @@
   </div>
 
   <div class="container">
-    <button class="btn-admin-toggle" style="background:transparent; border:1px solid #444; color:#666; padding:4px; font-size:11px; margin: 0 auto;" onclick="toggleAdmin()">🔒 Admin</button>
+    <button class="btn-admin-toggle" style="background:transparent; border:1px solid #444; color:#666; padding:6px; font-size:12px; margin: 0 auto; border-radius: 6px;" onclick="toggleAdmin()">🔒 Admin</button>
     <button class="btn-main admin-only" onclick="addDateBox()">+ Aggiungi Nuova Data</button>
     
     <div id="calendar-list"></div>
@@ -44,7 +48,6 @@
   </div>
 
   <script>
-    // Configurazione recuperata direttamente dal tuo schermo
     const firebaseConfig = {
       apiKey: "AIzaSyB9tx_miG8-FaCSkX3uWI1UlEryNRV",
       authDomain: "priority-lufthansa.firebaseapp.com",
@@ -63,90 +66,104 @@
 
     function toggleAdmin() {
       if (isAdmin) { setAdminMode(false); } 
-      else { 
-        const pass = prompt("Password Amministratore:"); 
-        if (pass === ADMIN_PASSWORD) setAdminMode(true); 
-      }
+      else { const pass = prompt("Password Amministratore:"); if (pass === ADMIN_PASSWORD) setAdminMode(true); }
     }
 
     function setAdminMode(active) {
       isAdmin = active;
       document.body.classList.toggle('is-admin', active);
-      document.querySelectorAll('.editable').forEach(el => el.setAttribute('contenteditable', active));
+      document.querySelectorAll('.date-title-input, .sub-text-input').forEach(el => { el.readOnly = !active; });
     }
 
     function addDateBox(dateText = "Nuova Data", subRowsData = null) {
       const list = document.getElementById('calendar-list');
-      const item = document.createElement('details');
+      const item = document.createElement('div');
       item.className = 'date-box';
       item.innerHTML = `
-        <summary><span class="editable" contenteditable="${isAdmin}">${dateText}</span></summary>
-        <div class="sub-content" style="padding:10px;">
-          <div class="sub-list"></div>
-          <button class="admin-only btn-main" style="padding:8px; font-size:12px; margin-top:5px;" onclick="addNewSubRow(this)">+ Aggiungi Riga</button>
-          <button class="btn-delete admin-only" style="width:100%; margin-top:10px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>
-        </div>`;
+        <input type="text" class="date-title-input" value="${dateText}" ${isAdmin ? '' : 'readonly'}>
+        <div class="sub-list"></div>
+        <button class="admin-only btn-main" style="padding:8px; font-size:13px; margin-top:8px;" onclick="addNewSubRow(this)">+ Aggiungi Riga</button>
+        <button class="btn-delete admin-only" style="width:100%; margin-top:8px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>
+      `;
       list.appendChild(item);
-      if (subRowsData) subRowsData.forEach(s => addNewSubRow(item.querySelector('.sub-list'), s));
+      const subList = item.querySelector('.sub-list');
+      if (subRowsData && subRowsData.length > 0) { subRowsData.forEach(s => addNewSubRow(subList, s)); } 
+      else { addNewSubRow(subList, {subText: "Nuova riga...", imgSrc: ""}); }
     }
 
     function addNewSubRow(container, data = {subText: "Nuova riga...", imgSrc: ""}) {
-      const subList = container.className === 'sub-list' ? container : container.previousElementSibling;
+      const subList = container.classList.contains('sub-list') ? container : container.previousElementSibling;
       const div = document.createElement('div');
       div.className = 'sub-box';
+      // Se non c'è immagine, nascondiamo tutto il blocco wrapper
+      const displayStyle = data.imgSrc ? 'block' : 'none';
       div.innerHTML = `
-        <span class="editable" contenteditable="${isAdmin}">${data.subText}</span>
-        <div class="image-wrapper admin-only">
-          <input type="file" accept="image/*" onchange="preview(this)">
+        <input type="text" class="sub-text-input" value="${data.subText}" ${isAdmin ? '' : 'readonly'}>
+        <div class="image-wrapper admin-only" style="margin-top:8px;">
+          <input type="file" accept="image/*" onchange="previewCompressed(this)">
         </div>
-        <div class="image-wrapper">
-          <img src="${data.imgSrc}" style="display:${data.imgSrc ? 'block' : 'none'};">
+        <div class="image-wrapper" style="display:${displayStyle};">
+          <img src="${data.imgSrc || ''}">
         </div>
-        <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>`;
+        <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>
+      `;
       subList.appendChild(div);
     }
 
-    function preview(input) {
+    function previewCompressed(input) {
+      const file = input.files[0];
+      if (!file) return;
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = input.parentElement.nextElementSibling.querySelector('img');
-        img.src = e.target.result;
-        img.style.display = 'block';
+      reader.onload = function(e) {
+        const imgObj = new Image();
+        imgObj.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = imgObj.width; let height = imgObj.height;
+          const MAX_SIZE = 800;
+          if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
+          else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(imgObj, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          const wrapper = input.parentElement.nextElementSibling;
+          const imgElem = wrapper.querySelector('img');
+          imgElem.src = compressedBase64;
+          wrapper.style.display = 'block'; // Mostra solo ora che c'è la foto
+        };
+        imgObj.src = e.target.result;
       };
-      reader.readAsDataURL(input.files[0]);
+      reader.readAsDataURL(file);
     }
 
     function saveData() {
       const data = [];
       document.querySelectorAll('.date-box').forEach(box => {
+        const dateTitle = box.querySelector('.date-title-input').value;
         const subRows = [];
         box.querySelectorAll('.sub-box').forEach(sb => {
+          const subText = sb.querySelector('.sub-text-input').value;
           const img = sb.querySelector('img');
-          subRows.push({ 
-            subText: sb.querySelector('.editable').innerText, 
-            imgSrc: img ? img.src : '' 
+          const wrapper = sb.querySelector('.image-wrapper:not(.admin-only)');
+          subRows.push({
+            subText: subText,
+            imgSrc: (wrapper && wrapper.style.display !== 'none') ? img.src : ''
           });
         });
-        data.push({ 
-          dateText: box.querySelector('summary .editable').innerText, 
-          subRowsData: subRows 
-        });
+        data.push({ dateText: dateTitle, subRowsData: subRows });
       });
-
       db.ref('calendario_priority').set(data)
-        .then(() => alert('Salvato con successo per TUTTI gli ospiti!'))
-        .catch(err => alert('Errore nel salvataggio: ' + err.message));
+        .then(() => alert('Salvato!'))
+        .catch(err => alert('Errore: ' + err.message));
     }
 
     db.ref('calendario_priority').on('value', (snapshot) => {
       const list = document.getElementById('calendar-list');
       list.innerHTML = '';
       const data = snapshot.val();
-      if (data) {
-        data.forEach(i => addDateBox(i.dateText, i.subRowsData));
-      } else {
-        addDateBox("1 Agosto");
-      }
+      if (data && data.length > 0) { data.forEach(i => addDateBox(i.dateText, i.subRowsData)); } 
+      else { addDateBox("1 Agosto"); }
+      setAdminMode(isAdmin);
     });
   </script>
 </body>
