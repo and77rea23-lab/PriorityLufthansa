@@ -20,14 +20,22 @@
     body.is-admin .admin-only { display: block !important; }
     
     .date-box { background: #2a2a2a; border: 1px solid #444; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
-    .date-title-input { width: 100%; background: transparent; border: none; color: #ff8c00; font-size: 18px; font-weight: bold; padding: 6px 0; box-sizing: border-box; }
+    .date-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .date-title-input { flex-grow: 1; background: transparent; border: none; color: #ff8c00; font-size: 18px; font-weight: bold; padding: 6px 0; box-sizing: border-box; }
     body.is-admin .date-title-input { border-bottom: 1px dashed #ff8c00; background: #333; padding: 6px; border-radius: 4px; }
+    .arrow-icon { color: #ff8c00; font-size: 16px; margin-left: 10px; font-weight: bold; }
+
+    .sub-list { display: none; margin-top: 10px; }
+    .date-box.open .sub-list { display: block; }
 
     .sub-box { background: #333333; border: 1px solid #555; border-radius: 8px; margin-top: 10px; padding: 10px; }
     .sub-text-input { width: 100%; background: transparent; border: none; color: #ffffff; font-size: 15px; padding: 6px 0; box-sizing: border-box; }
     body.is-admin .sub-text-input { border-bottom: 1px dashed #aaa; background: #222; padding: 6px; border-radius: 4px; }
 
-    .image-container img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; margin-top: 8px; }
+    .btn-img-dropdown { background: #222; color: #ff8c00; border: 1px solid #ff8c00; padding: 6px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; margin-top: 8px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+    .img-render-area { display: none; margin-top: 8px; }
+    .img-render-area.open { display: block; }
+    .image-container img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; }
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
@@ -74,28 +82,52 @@
       document.querySelectorAll('.date-title-input, .sub-text-input').forEach(el => { el.readOnly = !active; });
     }
 
+    function toggleDateBox(headerElem) {
+      const dateBox = headerElem.closest('.date-box');
+      dateBox.classList.toggle('open');
+      const arrow = headerElem.querySelector('.arrow-icon');
+      if (arrow) {
+        arrow.innerText = dateBox.classList.contains('open') ? '▲' : '▼';
+      }
+    }
+
+    function toggleImageDropdown(btn) {
+      const renderArea = btn.nextElementSibling;
+      renderArea.classList.toggle('open');
+      const arrow = btn.querySelector('.arrow-sub');
+      if (arrow) {
+        arrow.innerText = renderArea.classList.contains('open') ? '▲' : '▼';
+      }
+    }
+
     function addDateBox(dateText = "Nuova Data", subRowsData = null) {
       const list = document.getElementById('calendar-list');
       const item = document.createElement('div');
       item.className = 'date-box';
       item.innerHTML = `
-        <input type="text" class="date-title-input" value="${dateText}" ${isAdmin ? '' : 'readonly'}>
-        <div class="sub-list"></div>
-        <button class="admin-only btn-main" style="padding:8px; font-size:13px; margin-top:8px;" onclick="addNewSubRow(this)">+ Aggiungi Riga</button>
-        <button class="btn-delete admin-only" style="width:100%; margin-top:8px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>
+        <div class="date-header" onclick="toggleDateBox(this)">
+          <input type="text" class="date-title-input" value="${dateText}" ${isAdmin ? '' : 'readonly'} onclick="event.stopPropagation()">
+          <span class="arrow-icon">▼</span>
+        </div>
+        <div class="sub-list">
+          <button class="admin-only btn-main" style="padding:8px; font-size:13px; margin-top:8px;" onclick="addNewSubRow(this)">+ Aggiungi Riga</button>
+          <button class="btn-delete admin-only" style="width:100%; margin-top:8px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>
+        </div>
       `;
       list.appendChild(item);
       const subList = item.querySelector('.sub-list');
-      if (subRowsData && subRowsData.length > 0) { subRowsData.forEach(s => addNewSubRow(subList, s)); } 
-      else { addNewSubRow(subList, {subText: "Nuova riga...", imgSrc: ""}); }
+      if (subRowsData && subRowsData.length > 0) { 
+        subRowsData.forEach(s => addNewSubRow(subList, s)); 
+      } else { 
+        addNewSubRow(subList, {subText: "Nuova riga...", imgSrc: ""}); 
+      }
     }
 
     function addNewSubRow(container, data = {subText: "Nuova riga...", imgSrc: ""}) {
-      const subList = container.classList.contains('sub-list') ? container : container.previousElementSibling;
+      const subList = container.classList.contains('sub-list') ? container : container.parentElement;
       const div = document.createElement('div');
       div.className = 'sub-box';
       
-      // Controllo per caricare il tag img SOLO se esiste una foto valida caricata
       const hasValidImage = data && data.imgSrc && typeof data.imgSrc === 'string' && data.imgSrc.startsWith('data:image');
 
       div.innerHTML = `
@@ -103,12 +135,25 @@
         <div class="image-wrapper admin-only" style="margin-top:8px;">
           <input type="file" accept="image/*" onchange="previewCompressed(this)">
         </div>
+        
+        <button class="btn-img-dropdown" style="display: ${hasValidImage ? 'flex' : 'none'};" onclick="toggleImageDropdown(this)">
+          <span>📷 Mostra Foto</span>
+          <span class="arrow-sub">▼</span>
+        </button>
+        
         <div class="img-render-area">
           ${hasValidImage ? `<div class="image-container"><img src="${data.imgSrc}"></div>` : ''}
         </div>
+        
         <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>
       `;
-      subList.appendChild(div);
+      
+      const addBtn = subList.querySelector('.btn-main');
+      if (addBtn) {
+        subList.insertBefore(div, addBtn);
+      } else {
+        subList.appendChild(div);
+      }
     }
 
     function previewCompressed(input) {
@@ -128,8 +173,14 @@
           ctx.drawImage(imgObj, 0, 0, width, height);
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
           
-          const area = input.parentElement.nextElementSibling;
+          const subBox = input.closest('.sub-box');
+          const dropdownBtn = subBox.querySelector('.btn-img-dropdown');
+          const area = subBox.querySelector('.img-render-area');
+          
+          dropdownBtn.style.display = 'flex';
           area.innerHTML = `<div class="image-container"><img src="${compressedBase64}"></div>`;
+          area.classList.add('open');
+          dropdownBtn.querySelector('.arrow-sub').innerText = '▲';
         };
         imgObj.src = e.target.result;
       };
