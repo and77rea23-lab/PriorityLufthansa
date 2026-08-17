@@ -4,46 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PRIORITY LUFTHANSA</title>
-  <link rel="apple-touch-icon" href="icona.jpg">
-  <link rel="icon" type="image/jpeg" href="icona.jpg">
-  
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #1e1e1e; margin: 0; padding: 12px; color: #ffffff; }
-    .logo-header { text-align: center; margin: 10px 0 20px 0; }
-    .logo-header img { max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto; }
     .container { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
     .btn-main { background-color: #ff8c00; color: #000; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; font-size: 15px; }
     .admin-only { display: none !important; }
     body.is-admin .admin-only { display: block !important; }
-    
     .date-box { background: #2a2a2a; border: 1px solid #444; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
-    .date-title-input { width: 100%; background: transparent; border: none; color: #ff8c00; font-size: 18px; font-weight: bold; padding: 6px 0; box-sizing: border-box; }
-    body.is-admin .date-title-input { border-bottom: 1px dashed #ff8c00; background: #333; padding: 6px; border-radius: 4px; }
-
+    .date-title-input { width: 100%; background: transparent; border: none; color: #ff8c00; font-size: 18px; font-weight: bold; padding: 6px 0; }
     .sub-box { background: #333333; border: 1px solid #555; border-radius: 8px; margin-top: 10px; padding: 10px; }
-    .sub-text-input { width: 100%; background: transparent; border: none; color: #ffffff; font-size: 15px; padding: 6px 0; box-sizing: border-box; }
-    body.is-admin .sub-text-input { border-bottom: 1px dashed #aaa; background: #222; padding: 6px; border-radius: 4px; }
-
+    .sub-text-input { width: 100%; background: transparent; border: none; color: #ffffff; font-size: 15px; padding: 6px 0; }
     .image-container img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #555; display: block; margin-top: 8px; }
     .btn-delete { background-color: #444; color: #ff4500; border: 1px solid #ff4500; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 8px; }
   </style>
 </head>
 <body>
-
-  <div class="logo-header">
-    <img src="logo.jpg" alt="PRIORITY LUFTHANSA">
-  </div>
-
   <div class="container">
-    <button class="btn-admin-toggle" style="background:transparent; border:1px solid #444; color:#666; padding:6px; font-size:12px; margin: 0 auto; border-radius: 6px;" onclick="toggleAdmin()">🔒 Admin</button>
+    <button style="background:transparent; border:1px solid #444; color:#666; padding:6px; font-size:12px; margin: 0 auto; border-radius: 6px;" onclick="toggleAdmin()">🔒 Admin</button>
     <button class="btn-main admin-only" onclick="addDateBox()">+ Aggiungi Nuova Data</button>
-    
     <div id="calendar-list"></div>
-    
-    <button id="btn-save" class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti gli Ospiti</button>
+    <button id="btn-save" class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti</button>
   </div>
 
   <script>
@@ -56,61 +38,49 @@
       messagingSenderId: "562249937483",
       appId: "1:562249937483:web:29d94c54f809ad160"
     };
-    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
     let isAdmin = false;
-    const ADMIN_PASSWORD = "1948";
 
     function toggleAdmin() {
-      if (isAdmin) { setAdminMode(false); } 
-      else { const pass = prompt("Password Amministratore:"); if (pass === ADMIN_PASSWORD) setAdminMode(true); }
+      const pass = isAdmin ? "" : prompt("Password:");
+      if (!isAdmin && pass === "1948") setAdminMode(true);
+      else if (isAdmin) setAdminMode(false);
     }
 
     function setAdminMode(active) {
       isAdmin = active;
       document.body.classList.toggle('is-admin', active);
-      document.querySelectorAll('.date-title-input, .sub-text-input').forEach(el => { el.readOnly = !active; });
     }
 
     function addDateBox(dateText = "Nuova Data", subRowsData = null) {
       const list = document.getElementById('calendar-list');
       const item = document.createElement('div');
       item.className = 'date-box';
-      item.innerHTML = `
-        <input type="text" class="date-title-input" value="${dateText}" ${isAdmin ? '' : 'readonly'}>
-        <div class="sub-list"></div>
-        <button class="admin-only btn-main" style="padding:8px; font-size:13px; margin-top:8px;" onclick="addNewSubRow(this)">+ Aggiungi Riga</button>
-        <button class="btn-delete admin-only" style="width:100%; margin-top:8px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>
-      `;
+      item.innerHTML = `<input type="text" class="date-title-input" value="${dateText}" ${isAdmin ? '' : 'readonly'}><div class="sub-list"></div><button class="admin-only btn-main" style="padding:8px; font-size:13px; margin-top:8px;" onclick="addNewSubRow(this.previousElementSibling)">+ Aggiungi Riga</button><button class="btn-delete admin-only" style="width:100%; margin-top:8px;" onclick="this.closest('.date-box').remove()">Elimina Data</button>`;
       list.appendChild(item);
       const subList = item.querySelector('.sub-list');
-      if (subRowsData && subRowsData.length > 0) { subRowsData.forEach(s => addNewSubRow(subList, s)); } 
-      else { addNewSubRow(subList, {subText: "Nuova riga...", imgSrc: ""}); }
+      if (subRowsData) subRowsData.forEach(s => addNewSubRow(subList, s));
+      else addNewSubRow(subList);
     }
 
     function addNewSubRow(container, data = {subText: "Nuova riga...", imgSrc: ""}) {
-      const subList = container.classList.contains('sub-list') ? container : container.previousElementSibling;
       const div = document.createElement('div');
       div.className = 'sub-box';
-      
-      const hasImage = data && data.imgSrc && data.imgSrc.trim() !== "";
-
       div.innerHTML = `
         <input type="text" class="sub-text-input" value="${data.subText}" ${isAdmin ? '' : 'readonly'}>
         <div class="image-wrapper admin-only" style="margin-top:8px;">
-          <input type="file" accept="image/*" onchange="previewCompressed(this)">
+          <input type="file" accept="image/*" onchange="handleImage(this)">
         </div>
-        <div class="image-container">
-          ${hasImage ? `<img src="${data.imgSrc}">` : ''}
+        <div class="img-render-area">
+          ${data.imgSrc ? `<div class="image-container"><img src="${data.imgSrc}"></div>` : ''}
         </div>
         <button class="btn-delete admin-only" onclick="this.parentElement.remove()">Elimina Riga</button>
       `;
-      subList.appendChild(div);
+      container.appendChild(div);
     }
 
-    function previewCompressed(input) {
+    function handleImage(input) {
       const file = input.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -118,22 +88,14 @@
         const imgObj = new Image();
         imgObj.onload = function() {
           const canvas = document.createElement('canvas');
-          let width = imgObj.width; let height = imgObj.height;
-          const MAX_SIZE = 500;
-          if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
-          else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
-          canvas.width = width; canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(imgObj, 0, 0, width, height);
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.4);
-          
-          const container = input.parentElement.nextElementSibling;
-          let imgElem = container.querySelector('img');
-          if (!imgElem) {
-            imgElem = document.createElement('img');
-            container.appendChild(imgElem);
-          }
-          imgElem.src = compressedBase64;
+          const MAX = 600;
+          let w = imgObj.width, h = imgObj.height;
+          if (w > h) { h *= MAX/w; w = MAX; } else { w *= MAX/h; h = MAX; }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(imgObj, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          const area = input.parentElement.nextElementSibling;
+          area.innerHTML = `<div class="image-container"><img src="${dataUrl}"></div>`;
         };
         imgObj.src = e.target.result;
       };
@@ -142,42 +104,25 @@
 
     function saveData() {
       const btn = document.getElementById('btn-save');
-      if (btn) { btn.innerText = "⏳ Salvataggio in corso..."; btn.disabled = true; }
-
+      btn.innerText = "Salvataggio...";
       const data = [];
       document.querySelectorAll('.date-box').forEach(box => {
-        const dateTitle = box.querySelector('.date-title-input').value;
         const subRows = [];
         box.querySelectorAll('.sub-box').forEach(sb => {
-          const subText = sb.querySelector('.sub-text-input').value;
-          const img = sb.querySelector('.image-container img');
-          
-          subRows.push({
-            subText: subText,
-            imgSrc: (img) ? img.src : ''
-          });
+          const img = sb.querySelector('img');
+          subRows.push({ subText: sb.querySelector('.sub-text-input').value, imgSrc: img ? img.src : '' });
         });
-        data.push({ dateText: dateTitle, subRowsData: subRows });
+        data.push({ dateText: box.querySelector('.date-title-input').value, subRowsData: subRows });
       });
-      
-      db.ref('calendario_priority').set(data)
-        .then(() => {
-          alert('Salvato con successo!');
-          if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
-        })
-        .catch(err => {
-          alert('Errore: ' + err.message);
-          if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
-        });
+      db.ref('calendario_priority').set(data).then(() => { btn.innerText = "💾 Salva per Tutti"; alert('Fatto!'); });
     }
 
     db.ref('calendario_priority').on('value', (snapshot) => {
       if (document.activeElement.tagName === 'INPUT') return;
-      const list = document.getElementById('calendar-list');
-      list.innerHTML = '';
+      const list = document.getElementById('calendar-list'); list.innerHTML = '';
       const data = snapshot.val();
-      if (data && data.length > 0) { data.forEach(i => addDateBox(i.dateText, i.subRowsData)); } 
-      else { addDateBox("8 Agosto"); }
+      if (data) data.forEach(i => addDateBox(i.dateText, i.subRowsData));
+      else addDateBox("8 Agosto");
       setAdminMode(isAdmin);
     });
   </script>
