@@ -44,6 +44,31 @@
 </head>
 <body>
 
+
+
+<!-- SCHERMATA DI LOGIN SITO -->
+  <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #1e1e1e; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; box-sizing: border-box;">
+    <div style="max-width: 350px; width: 100%; text-align: center; background: #2a2a2a; padding: 24px; border-radius: 12px; border: 1px solid #444;">
+      <h2 style="color: #ff8c00; margin-top: 0;">Accesso Riservato</h2>
+      <p style="color: #ccc; font-size: 14px;">Inserisci la password per accedere al sito:</p>
+      <input type="password" id="site-pass-input" placeholder="Password" style="width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #555; background: #1e1e1e; color: #fff; box-sizing: border-box; margin-bottom: 12px; font-size: 16px;" onkeydown="if(event.key==='Enter') checkSitePassword()">
+      <button onclick="checkSitePassword()" style="width: 100%; background-color: #ff8c00; color: #000; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer;">Accedi</button>
+      <p id="pass-error" style="color: #ff4500; font-size: 13px; margin-top: 10px; display: none;">Password errata!</p>
+    </div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
   <div class="logo-header">
     <img src="logo.jpg" alt="PRIORITY LUFTHANSA">
   </div>
@@ -56,8 +81,42 @@
     
     <button id="btn-save" class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti gli Ospiti</button>
   </div>
+<script>
 
-  <script>
+
+// CONTROLLO PASSWORD SITO
+    const SITE_PASSWORD = "Code2026";
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (sessionStorage.getItem('site_access') === 'granted') {
+        const overlay = document.getElementById('login-overlay');
+        if (overlay) overlay.style.display = 'none';
+      }
+    });
+
+    function checkSitePassword() {
+      const input = document.getElementById('site-pass-input').value;
+      const errorMsg = document.getElementById('pass-error');
+      
+      if (input === SITE_PASSWORD) {
+        sessionStorage.setItem('site_access', 'granted');
+        document.getElementById('login-overlay').style.display = 'none';
+      } else {
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    // CONFIGURAZIONE FIREBASE
+
+
+
+
+
+
+
+
+
+
     const firebaseConfig = {
       apiKey: "AIzaSyB9tx_miG8-FaCSkX3uWI1UlEryNRV",
       authDomain: "priority-lufthansa.firebaseapp.com",
