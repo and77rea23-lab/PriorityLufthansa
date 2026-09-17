@@ -19,6 +19,11 @@
     .admin-only { display: none !important; }
     body.is-admin .admin-only { display: block !important; }
     
+    .month-select-box { background: #2a2a2a; border: 1px solid #ff8c00; border-radius: 10px; padding: 10px; margin-bottom: 4px; }
+    .month-select-box label { color: #ff8c00; font-size: 13px; font-weight: bold; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .month-select-input { width: 100%; background: #1e1e1e; color: #ffffff; border: 1px solid #555; padding: 10px; border-radius: 6px; font-size: 16px; font-weight: bold; box-sizing: border-box; cursor: pointer; outline: none; }
+    .month-select-input:focus { border-color: #ff8c00; }
+
     .date-box { background: #2a2a2a; border: 1px solid #444; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
     .date-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
     .date-title-input { flex-grow: 1; background: transparent; border: none; color: #ff8c00; font-size: 18px; font-weight: bold; padding: 6px 0; box-sizing: border-box; }
@@ -44,9 +49,7 @@
 </head>
 <body>
 
-
-
-<!-- SCHERMATA DI LOGIN SITO -->
+  <!-- SCHERMATA DI LOGIN SITO -->
   <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #1e1e1e; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; padding: 20px; box-sizing: border-box;">
     <div style="max-width: 350px; width: 100%; text-align: center; background: #2a2a2a; padding: 24px; border-radius: 12px; border: 1px solid #444;">
       <h2 style="color: #ff8c00; margin-top: 0;">Accesso Riservato</h2>
@@ -57,34 +60,35 @@
     </div>
   </div>
 
-
-
-
-
-
-
-
-
-
-
-
-
   <div class="logo-header">
     <img src="logo.jpg" alt="PRIORITY LUFTHANSA">
   </div>
 
   <div class="container">
     <button class="btn-admin-toggle" style="background:transparent; border:1px solid #444; color:#666; padding:6px; font-size:12px; margin: 0 auto; border-radius: 6px;" onclick="toggleAdmin()">🔒 Admin</button>
+    
+    <!-- SELETTORE DEL MESE -->
+    <div class="month-select-box">
+      <label for="month-selector">📅 Seleziona Mese:</label>
+      <select id="month-selector" class="month-select-input" onchange="changeMonth()">
+        <option value="2026-08">Agosto 2026</option>
+        <option value="2026-09" selected>Settembre 2026</option>
+        <option value="2026-10">Ottobre 2026</option>
+        <option value="2026-11">Novembre 2026</option>
+        <option value="2026-12">Dicembre 2026</option>
+        <option value="2027-01">Gennaio 2027</option>
+      </select>
+    </div>
+
     <button class="btn-main admin-only" onclick="addDateBox()">+ Aggiungi Nuova Data</button>
     
     <div id="calendar-list"></div>
     
     <button id="btn-save" class="btn-main admin-only" onclick="saveData()">💾 Salva per Tutti gli Ospiti</button>
   </div>
-<script>
 
-
-// CONTROLLO PASSWORD SITO
+  <script>
+    // CONTROLLO PASSWORD SITO
     const SITE_PASSWORD = "Code2026";
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -107,16 +111,6 @@
     }
 
     // CONFIGURAZIONE FIREBASE
-
-
-
-
-
-
-
-
-
-
     const firebaseConfig = {
       apiKey: "AIzaSyB9tx_miG8-FaCSkX3uWI1UlEryNRV",
       authDomain: "priority-lufthansa.firebaseapp.com",
@@ -132,6 +126,35 @@
 
     let isAdmin = false;
     const ADMIN_PASSWORD = "1948";
+
+    // GESTIONE CAMBIO MESE E ASCOLTO DINAMICO
+    let currentMonth = "2026-09";
+    let dbListener = null;
+
+    function changeMonth() {
+      currentMonth = document.getElementById('month-selector').value;
+      listenToMonth(currentMonth);
+    }
+
+    function listenToMonth(monthKey) {
+      if (dbListener) {
+        dbListener.off(); // Stacca l'ascolto del mese precedente
+      }
+
+      dbListener = db.ref('calendario_priority/' + monthKey);
+      dbListener.on('value', (snapshot) => {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+        const list = document.getElementById('calendar-list');
+        list.innerHTML = '';
+        const data = snapshot.val();
+        if (data && data.length > 0) { 
+          data.forEach(i => addDateBox(i.dateText, i.subRowsData)); 
+        } else { 
+          addDateBox("Nuova Data"); 
+        }
+        setAdminMode(isAdmin);
+      });
+    }
 
     function toggleAdmin() {
       if (isAdmin) { setAdminMode(false); } 
@@ -278,6 +301,7 @@
       reader.readAsDataURL(file);
     }
 
+    // SALVATAGGIO DINAMICO NEL MESE SELEZIONATO
     function saveData() {
       const btn = document.getElementById('btn-save');
       if (btn) { btn.innerText = "⏳ Salvataggio..."; btn.disabled = true; }
@@ -310,9 +334,9 @@
         data.push({ dateText: dateTitle, subRowsData: subRows });
       });
       
-      db.ref('calendario_priority').set(data)
+      db.ref('calendario_priority/' + currentMonth).set(data)
         .then(() => {
-          alert('Salvato con successo!');
+          alert('Salvato con successo per il mese selezionato!');
           if (btn) { btn.innerText = "💾 Salva per Tutti gli Ospiti"; btn.disabled = false; }
         })
         .catch(err => {
@@ -321,15 +345,8 @@
         });
     }
 
-    db.ref('calendario_priority').on('value', (snapshot) => {
-      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-      const list = document.getElementById('calendar-list');
-      list.innerHTML = '';
-      const data = snapshot.val();
-      if (data && data.length > 0) { data.forEach(i => addDateBox(i.dateText, i.subRowsData)); } 
-      else { addDateBox("8 Agosto"); }
-      setAdminMode(isAdmin);
-    });
+    // CARICAMENTO INIZIALE DEL MESE CORRENTE
+    listenToMonth(currentMonth);
   </script>
 </body>
 </html>
